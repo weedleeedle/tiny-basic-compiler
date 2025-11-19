@@ -18,6 +18,7 @@ pub trait LexerModule
     fn parse_stream<'a>(&mut self, stream: &'a str) -> Option<LexerModuleResult<'a>>;
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token
 {
     Keyword(Keyword),
@@ -159,6 +160,7 @@ impl TryFrom<u8> for Variable
 
 /// All of the accepted symbols by the language?
 /// We don't want to interpret here, just parse.
+#[derive(Debug, PartialEq, Eq)]
 pub enum Symbol
 {
     LessThanSign,

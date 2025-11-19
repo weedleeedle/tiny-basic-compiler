@@ -141,3 +141,61 @@ impl<'a> Iterator for TokenIterator<'a> {
         self.parse_stream()
     }
 }
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    // Dummy lexer module that just returns each token provided to it and consumes one character of
+    // an input string at a time.
+    pub struct TestLexerModule
+    {
+        tokens_to_return: std::vec::IntoIter<Token>,
+    }
+
+    impl TestLexerModule
+    {
+        pub fn new(tokens: Vec<Token>) -> Self
+        {
+            Self
+            {
+                tokens_to_return: tokens.into_iter()
+            }
+        }
+    }
+
+    impl LexerModule for TestLexerModule
+    {
+        fn parse_stream<'a>(&mut self, stream: &'a str) -> Option<crate::lexer::LexerModuleResult<'a>> {
+            let token = self.tokens_to_return.next();
+            token.map(|x|
+                crate::lexer::LexerModuleResult { 
+                    remainder: &stream[1..],
+                    token: x 
+                })
+        }
+    }
+    #[test]
+    fn test_can_build_lexer()
+    {
+        let lexer = LexerBuilder::new().build("Test");
+        assert_eq!(lexer.lexer_modules.len(), 0);
+        assert_eq!(lexer.input_stream, "Test");
+    }
+
+    #[test]
+    fn test_lexer_with_test_lexer()
+    {
+        let tokens = vec![Token::NewLine];
+        let test_lexer_module = TestLexerModule::new(tokens);
+        let lexer = LexerBuilder::new()
+                    .add_module(Box::new(test_lexer_module))
+                    .build("A");
+
+        let ret_tokens: Vec<Token> = lexer.into_iter().collect();
+        assert_eq!(ret_tokens.len(), 1);
+        assert_eq!(ret_tokens[0], Token::NewLine);
+    }
+
+}
