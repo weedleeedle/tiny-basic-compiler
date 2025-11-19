@@ -197,5 +197,4 @@ mod tests
         assert_eq!(ret_tokens.len(), 1);
         assert_eq!(ret_tokens[0], Token::NewLine);
     }
-
 }

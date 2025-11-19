@@ -1,6 +1,7 @@
 //! Common lexer modules.
 mod keyword_lexer_module;
 mod variable_lexer_module;
+mod number_lexer_module;
 
 pub use keyword_lexer_module::KeywordLexerModule;
 
