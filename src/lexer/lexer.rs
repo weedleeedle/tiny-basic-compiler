@@ -20,10 +20,13 @@ impl LexerBuilder
     /// Builds this [LexerBuilder] into a [Lexer].
     /// Since memory is allocated on the heap for Lexer Modules,
     /// we consume the self to avoid a duplication.
-    pub fn build(self) -> Lexer
+    ///
+    /// We also provide the input stream that we're planning on parsing.
+    pub fn build<'a>(self, input_stream: &'a str) -> Lexer<'a>
     {
         Lexer 
         { 
+            input_stream,
             lexer_modules: self.lexer_modules,
         }
     }
@@ -40,37 +43,86 @@ impl LexerBuilder
     }
 }
 
-pub struct Lexer
+pub struct Lexer<'a>
 {
     lexer_modules: Vec<Box<dyn LexerModule>>,
+    input_stream: &'a str,
 }
 
-impl Lexer
+impl<'a> IntoIterator for Lexer<'a>
 {
-    pub fn parse_stream(&mut self, stream: &str) -> Vec<Token>
-    {
-        let mut tokens: Vec<Token> = Vec::new();
-        let mut remainder = stream;
-        while !remainder.is_empty()
-        {
-            let token = self.try_each_lexer(stream);
-            if let Some(token) = token
-            {
-                remainder = token.remainder;
-                tokens.push(token.token);
-            }
-            else
-            {
-                remainder = &remainder[1..];
-            }
-        }
+    type Item = Token;
 
-        tokens
+    type IntoIter = TokenIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        TokenIterator
+        {
+            input_stream: self.input_stream,
+            lexer: self
+        }
+    }
+}
+
+pub struct TokenIterator<'a>
+{
+    lexer: Lexer<'a>,
+    input_stream: &'a str
+}
+
+impl<'a> TokenIterator<'a>
+{
+    /// Produces the first valid token and updates the input stream accordingly.
+    fn parse_stream(&mut self) -> Option<Token>
+    {
+        loop 
+        {
+            // Handle empty stream and return a none token.
+            if self.input_stream.is_empty()
+            {
+                return None;
+            }
+
+            // Otherwise we try and parse the input.
+            let token = self.try_parse_first_token();
+            // Parse succeeded.
+            if token.is_some()
+            {
+                return token;
+            }
+
+            // If the parse failed we loop.
+        }
     }
 
-    fn try_each_lexer<'a>(&mut self, stream: &'a str) -> Option<super::LexerModuleResult<'a>>
+    /// Attempts to extract a token from the start of the string.
+    ///
+    /// Effectively parsing can fail for two reasons.
+    /// 1. The stream is empty (halt here, we're done iterating.)
+    /// 2. The frontmost symbol was unhandled by any lexer module. (We skip it and move on.)
+    ///
+    /// Updates our stored position in the [input_stream].
+    fn try_parse_first_token(&mut self) -> Option<Token>
     {
-        for lexer in self.lexer_modules.iter_mut()
+        let mut remainder = self.input_stream;
+        let token = self.try_each_lexer(remainder);
+        if let Some(token) = token.as_ref()
+        {
+            remainder = token.remainder;
+        }
+        else
+        {
+            remainder = &remainder[1..];
+        }
+
+        // update input stream to strip the remaining input characters.
+        self.input_stream = remainder;
+        token.map(|x| x.token)
+    }
+
+    fn try_each_lexer(&mut self, stream: &'a str) -> Option<super::LexerModuleResult<'a>>
+    {
+        for lexer in self.lexer.lexer_modules.iter_mut()
         {
             let result = lexer.as_mut().parse_stream(stream);
             if result.is_some()
@@ -79,5 +131,13 @@ impl Lexer
             }
         }
         return None;
+    }
+}
+
+impl<'a> Iterator for TokenIterator<'a> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.parse_stream()
     }
 }
