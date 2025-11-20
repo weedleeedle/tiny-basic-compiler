@@ -42,7 +42,7 @@ mod tests
             let token = result.token;
             match token
             {
-                Token::Variable(x) => assert_eq!(x.0, i),
+                Token::Variable(x) => assert_eq!(Into::<u8>::into(x), i),
                 _ => panic!("Expected token to be a variable!"),
             }
             remainder = result.remainder;
@@ -64,7 +64,7 @@ mod tests
             let token = result.token;
             match token
             {
-                Token::Variable(x) => assert_eq!(x.0, i),
+                Token::Variable(x) => assert_eq!(Into::<u8>::into(x), i),
                 _ => panic!("Expected token to be a variable!"),
             }
             remainder = result.remainder;
