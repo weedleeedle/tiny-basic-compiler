@@ -1,6 +1,6 @@
 //! The variable lexer module parses variables, which are a single letter A-Z.
 
-use crate::lexer::{LexerModuleResult, Token, Variable};
+use crate::lexer::{LexerModuleResult, Token, Variable, VariableFromU8Error};
 
 use super::super::LexerModule;
 
@@ -8,13 +8,26 @@ pub struct VariableLexerModule();
 
 impl LexerModule for VariableLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> Option<crate::lexer::LexerModuleResult<'a>> {
-        let first_char = stream.bytes().next()?;
-        let variable: Variable = first_char.try_into().ok()?;
-        Some(LexerModuleResult
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a> {
+        let first_char = stream.bytes().next();
+        if first_char.is_none()
+        {
+            return LexerModuleResult::TokenIgnored;
+        }
+        let first_char = first_char.unwrap();
+        // If the first character is NOT a-z, we just ignore it.
+        // We don't consider it to be a failure.
+        let variable: Result<Variable, VariableFromU8Error> = first_char.try_into();
+        if variable.is_err()
+        {
+            return LexerModuleResult::TokenIgnored
+        }
+
+        LexerModuleResult::TokenSuccess(
+            crate::lexer::LexerModuleSuccessResult
         {
             remainder: &stream[1..],
-            token: Token::Variable(variable)
+            token: Token::Variable(variable.unwrap())
         })
     }
 }
@@ -37,7 +50,7 @@ mod tests
         for i in 0..26
         {
             let result = lexer_module.parse_stream(remainder);
-            assert!(result.is_some());
+            assert!(result.is_success());
             let result = result.unwrap();
             let token = result.token;
             match token
@@ -59,7 +72,7 @@ mod tests
         for i in 0..26
         {
             let result = lexer_module.parse_stream(remainder);
-            assert!(result.is_some());
+            assert!(result.is_success());
             let result = result.unwrap();
             let token = result.token;
             match token
@@ -78,6 +91,6 @@ mod tests
         let s = String::from("0");
         let mut lexer_module = VariableLexerModule();
         let result = lexer_module.parse_stream(&s);
-        assert!(result.is_none());
+        assert!(result.is_ignored());
     }
 }

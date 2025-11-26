@@ -1,3 +1,5 @@
+use crate::lexer::LexerModuleSuccessResult;
+
 use super::get_first_word;
 use std::str::FromStr;
 use super::super::{Keyword, LexerModuleResult, Token};
@@ -7,11 +9,11 @@ pub struct KeywordLexerModule();
 
 impl LexerModule for KeywordLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> Option<LexerModuleResult<'a>> {
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a> {
         let token = get_first_word(stream); 
         if token.is_none()
         {
-            return None;
+            return LexerModuleResult::TokenIgnored;
         }
         let token = token.unwrap();
         let remainder = &stream[token.len()..];
@@ -19,10 +21,10 @@ impl LexerModule for KeywordLexerModule
         let keyword: Result<Keyword, ()> = Keyword::from_str(&token);
         if keyword.is_err()
         {
-            return None;
+            return LexerModuleResult::TokenIgnored;
         }
         let keyword = keyword.unwrap();
-        Some(LexerModuleResult
+        LexerModuleResult::TokenSuccess(LexerModuleSuccessResult
         {
             remainder,
             token: Token::Keyword(keyword)
@@ -41,7 +43,8 @@ mod tests
         let s = String::from("print \"Hello World!\"");
         let mut lexer_module = KeywordLexerModule();
         let result = lexer_module.parse_stream(&s);
-        assert!(result.is_some());
+        assert!(result.is_success());
+        assert_eq!(result.unwrap().token, Token::Keyword(Keyword::Print))
     }
 
     #[test]
@@ -50,7 +53,7 @@ mod tests
         let s = String::from("This is not a keyword");
         let mut lexer_module = KeywordLexerModule();
         let result = lexer_module.parse_stream(&s);
-        assert!(result.is_none());
+        assert!(result.is_ignored());
     }
 
     #[test]
@@ -59,7 +62,7 @@ mod tests
         let s = String::new();
         let mut lexer_module = KeywordLexerModule();
         let result = lexer_module.parse_stream(&s);
-        assert!(result.is_none());
+        assert!(result.is_ignored());
     }
 
     #[test]

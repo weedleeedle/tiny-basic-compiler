@@ -2,24 +2,32 @@
 //!
 //! It doesn't take into account sign or commas or anything.
 
-use crate::lexer::{LexerModule, LexerModuleResult, Token};
+use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult, Token};
 
 pub struct NumberLexerModule();
 
 impl LexerModule for NumberLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> Option<crate::lexer::LexerModuleResult<'a>> {
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a> {
         let number_str = get_all_digits_at_start(stream);
         if number_str.is_empty()
         {
-            return None;
+            return LexerModuleResult::TokenIgnored;
         }
 
-        let number: usize = number_str.parse().ok()?;
-        Some(
-            LexerModuleResult { 
+        // This might actually be a failure, idk.
+        // This shouldn't happen I think???
+        let number: Result<usize, _> = number_str.parse();
+        if number.is_err()
+        {
+            return LexerModuleResult::TokenIgnored;
+        }
+
+        LexerModuleResult::TokenSuccess(
+            LexerModuleSuccessResult
+            {
                 remainder: &stream[number_str.len()..],
-                token: Token::Number(number),
+                token: Token::Number(number.unwrap()),
             }
         )
     }
@@ -42,7 +50,7 @@ mod tests
     {
         let mut lexer_module = NumberLexerModule();
         let result = lexer_module.parse_stream("1234asdfg");
-        assert!(result.is_some());
+        assert!(result.is_success());
         let result = result.unwrap();
         assert_eq!(result.token, Token::Number(1234));
         assert_eq!(result.remainder, "asdfg");
@@ -53,6 +61,6 @@ mod tests
     {
         let mut lexer_module = NumberLexerModule();
         let result = lexer_module.parse_stream("this is not a number");
-        assert!(result.is_none());
+        assert!(result.is_ignored());
     }
 }

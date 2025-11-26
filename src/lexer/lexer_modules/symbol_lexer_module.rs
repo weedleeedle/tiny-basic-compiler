@@ -1,16 +1,26 @@
 //! This module parses symbols
 
-use crate::lexer::{LexerModule, LexerModuleResult, Token, token::Symbol};
+use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult, Token, token::Symbol};
 
 pub struct SymbolLexerModule();
 
 impl LexerModule for SymbolLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> Option<crate::lexer::LexerModuleResult<'a>> {
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a> {
 
-        let first_char = stream.bytes().next()?;
-        let symbol: Symbol = first_char.try_into().ok()?;
-        Some(LexerModuleResult
+        let first_char = stream.bytes().next();
+        if first_char.is_none()
+        {
+            return LexerModuleResult::TokenIgnored;
+        }
+        let first_char = first_char.unwrap();
+        let symbol: Result<Symbol, _> = first_char.try_into();
+        if symbol.is_err()
+        {
+            return LexerModuleResult::TokenIgnored;
+        }
+        let symbol = symbol.unwrap();
+        LexerModuleResult::TokenSuccess(LexerModuleSuccessResult
         {
             remainder: &stream[1..],
             token: Token::Symbol(symbol),
@@ -47,7 +57,7 @@ mod tests
 
         for (token, expected_token) in lexer.into_iter().zip(expected_token.into_iter())
         {
-            assert_eq!(token, expected_token);
+            assert_eq!(token.unwrap(), expected_token);
         }
     }
 }
