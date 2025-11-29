@@ -1,6 +1,5 @@
 use crate::lexer::LexerModuleSuccessResult;
 
-use super::get_first_word;
 use std::str::FromStr;
 use super::super::{Keyword, LexerModuleResult, Token};
 use super::super::LexerModule;
@@ -32,10 +31,49 @@ impl LexerModule for KeywordLexerModule
     }
 }
 
+/// Gets the first word (up to the first unicode whitespace).
+/// Returns [None] if the string is empty or all whitespace.
+/// Returns [Some] containing the first word otherwise.
+fn get_first_word(string: &str) -> Option<&str>
+{
+    string.split_whitespace().next()
+}
+
 #[cfg(test)]
 mod tests
 {
     use super::*;
+    #[test]
+    fn test_get_first_word_returns_first_word()
+    {
+        let s = "This is a string";
+        let result = get_first_word(s);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), "This");
+    }
+
+    #[test]
+    fn test_get_first_word_returns_none_empty_string()
+    {
+        let s = "";
+        assert!(get_first_word(s).is_none());
+    }
+
+    #[test]
+    fn test_get_first_word_returns_none_all_whitespace()
+    {
+        let s = "          ";
+        assert!(get_first_word(s).is_none());
+    }
+
+    #[test]
+    fn test_get_first_word_returns_first_word_before_newline()
+    {
+        let s = "Hello\nWorld";
+        let result = get_first_word(s);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), "Hello");
+    }
 
     #[test]
     fn test_valid_keyword_lexer_module()

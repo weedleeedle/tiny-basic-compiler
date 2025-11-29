@@ -13,10 +13,4 @@ pub use symbol_lexer_module::SymbolLexerModule;
 pub use string_lexer_module::StringLexerModule;
 pub use newline_lexer_module::NewlineLexerModule;
 
-/// Gets the first word (up to the first unicode whitespace).
-/// Returns [None] if the string is empty or all whitespace.
-/// Returns [Some] containing the first word otherwise.
-fn get_first_word(string: &str) -> Option<&str>
-{
-    string.split_whitespace().next()
-}
+
