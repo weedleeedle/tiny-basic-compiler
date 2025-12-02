@@ -1,15 +1,20 @@
-use std::str::FromStr;
-
-use derive_more::Into;
-use thiserror::Error;
+//! This module handles lexing an input file and returning a token stream
+//! to be parsed further by the rest of the application.
+//! [LexerModule]s return [LexerModuleResult]s. A [lexer::Lexer]
+//! is built out of one or more of these [LexerModule]s. 
+//!
+//! To get started, construct a [lexer::LexerBuider], which is used to create a [lexer::Lexer]
 
 mod lexer;
 mod token;
 mod lexer_modules;
+mod lexer_program_tests;
 
 pub use token::*;
+pub use lexer::*;
 
 /// Information contained when a token is successfully parsed out of an input stream.
+#[derive(Debug)]
 pub struct LexerModuleSuccessResult<'a>
 {
     /// The remainder of the input stream, with the consumed token's input character(s) subtracted
@@ -30,6 +35,7 @@ pub struct LexerModuleSuccessResult<'a>
 /// parse, but is somehow invalid. This happens, notably, if a string doesn't end in a double
 /// quotation mark as expected, but anytime a module encounters an input string in an invalid
 /// format, it should return the [TokenFailed] variant.
+#[derive(Debug)]
 pub enum LexerModuleResult<'a>
 {
     /// The input prefix was parsed successfully.

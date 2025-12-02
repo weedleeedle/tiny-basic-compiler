@@ -1,3 +1,4 @@
+//! Defines the core [Lexer] and [LexerBuilder] types.
 use crate::lexer::LexerModuleResult;
 
 use super::LexerModule;
@@ -38,10 +39,15 @@ impl LexerBuilder
     pub fn add_module(mut self, module: Box<dyn LexerModule>) -> Self
     {
         self.lexer_modules.push(module);
-        Self
-        {
-            lexer_modules: self.lexer_modules,
-        }
+        self
+    }
+
+    /// Adds multiple [LexerModule]s to the Lexer. Doesn't erase existing modules, only appends to
+    /// the list of modules.
+    pub fn add_modules(mut self, modules: Vec<Box<dyn LexerModule>>) -> Self
+    {
+        self.lexer_modules.extend(modules);
+        self
     }
 }
 
@@ -110,6 +116,7 @@ impl<'a> TokenIterator<'a>
     {
         let mut remainder = self.input_stream;
         let token = self.try_each_lexer(remainder);
+        println!("Token: {:?}", token);
         if token.is_failure()
         {
             // Halt and return the error.
@@ -125,6 +132,7 @@ impl<'a> TokenIterator<'a>
 
         if let LexerModuleResult::TokenSuccess(result) = &token
         {
+            println!("Remainder: {}", result.remainder);
             remainder = result.remainder;
         }
 

@@ -98,7 +98,7 @@ impl FromStr for Keyword
 
 /// A variable is any single letter from A-Z.
 /// We'll convert it to 0-25 internally probably?
-#[derive(Debug, PartialEq, Eq, Into)]
+#[derive(Debug, PartialEq, Eq, Into, Copy, Clone)]
 pub struct Variable(u8);
 
 #[derive(Debug, Error)]

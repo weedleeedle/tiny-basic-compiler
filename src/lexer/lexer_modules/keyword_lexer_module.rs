@@ -15,7 +15,7 @@ impl LexerModule for KeywordLexerModule
             return LexerModuleResult::TokenIgnored;
         }
         let token = token.unwrap();
-        let remainder = &stream[token.len()..];
+        let remainder = &stream[stream.find(token).unwrap()+token.len()..];
 
         let keyword: Result<Keyword, ()> = Keyword::from_str(&token);
         if keyword.is_err()
@@ -126,7 +126,6 @@ mod tests
         let mut lexer_module = KeywordLexerModule();
         for keyword in keywords
         {
-            println!("Remainder: {}", remainder);
             let result = lexer_module.parse_stream(remainder);
             let result = result.unwrap();
             match result.token
@@ -144,4 +143,29 @@ mod tests
 
         assert!(remainder.is_empty());
     }
+
+    #[test]
+    fn test_valid_keyword_with_newline_separates_correctly()
+    {
+        let s = "CLEAR\n";
+        let mut lexer_module = KeywordLexerModule();
+        let result = lexer_module.parse_stream(&s);
+        assert!(result.is_success());
+        let result = result.unwrap();
+        assert_eq!(result.remainder, "\n");
+    }
+
+
+    #[test]
+    fn test_valid_keyword_with_preceding_space()
+    {
+        let s = " CLEAR";
+        let mut lexer_module = KeywordLexerModule();
+        let result = lexer_module.parse_stream(&s);
+        assert!(result.is_success());
+        let result = result.unwrap();
+        assert_eq!(result.remainder, "");
+        assert_eq!(result.token, Token::Keyword(Keyword::Clear));
+    }
+
 }

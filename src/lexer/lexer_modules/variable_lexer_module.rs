@@ -93,4 +93,12 @@ mod tests
         let result = lexer_module.parse_stream(&s);
         assert!(result.is_ignored());
     }
+
+    pub fn test_parse_stream_fails_on_newline_character()
+    {
+        let s = String::from("\n");
+        let mut lexer_module = VariableLexerModule();
+        let result = lexer_module.parse_stream(&s);
+        assert!(result.is_ignored());
+    }
 }
