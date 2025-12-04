@@ -1,6 +1,8 @@
 #![cfg(test)]
 //! Tests the lexer on an entire program.
 
+use crate::parser::ast::Variable;
+
 use super::lexer_modules::*;
 use super::*;
 

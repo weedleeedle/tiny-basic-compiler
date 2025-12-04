@@ -1,6 +1,8 @@
 //! The variable lexer module parses variables, which are a single letter A-Z.
 
-use crate::lexer::{LexerModuleResult, Token, Variable, VariableFromU8Error};
+use crate::lexer::{LexerModuleResult, Token};
+use crate::parser::ast::VariableFromU8Error;
+use crate::parser::ast::Variable;
 
 use super::super::LexerModule;
 
