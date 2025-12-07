@@ -1,14 +1,54 @@
 //! Represents the [abstract syntax tree](https://en.wikipedia.org/wiki/Abstract_syntax_tree) of
-//! Tiny BASIC.
+//! Tiny BASIC. 
+//!
+//! Formal grammar:
+//! ```text
+//! line ::= number statement CR | statement CR
+//! 
+//! statement ::= PRINT expr-list
+//!               IF expression relop expression THEN statement
+//!               GOTO expression
+//!               INPUT var-list
+//!               LET var = expression
+//!               GOSUB expression
+//!               RETURN
+//!               CLEAR
+//!               LIST
+//!               RUN
+//!               END
+//!
+//! expr-list ::= (string|expression) (, (string|expression) )*
+//!
+//! var-list ::= var (, var)*
+//!
+//! expression ::= (+|-|ε) term ((+|-) term)*
+//!
+//! term ::= factor ((*|/) factor)*
+//!
+//! factor ::= var | number | (expression)
+//!
+//! var ::= A | B | C ... | Y | Z
+//!
+//! number ::= digit digit*
+//!
+//! digit ::= 0 | 1 | 2 | 3 | ... | 8 | 9
+//!
+//! relop ::= < (>|=|ε) | > (<|=|ε) | =
+//!
+//! string ::= " ( |!|#|$ ... -|.|/|digit|: ... @|A|B|C ... |X|Y|Z)* "
+//!```
 
-use derive_more::Into;
+use derive_more::{Constructor, Into};
+use getset::CopyGetters;
 use thiserror::Error;
 
 use crate::lexer::Symbol;
 
 /// This node represents a line in BASIC.
+#[derive(CopyGetters, Constructor)]
 pub struct Line
 {
+    #[getset(get_copy = "pub")]
     line_number: Option<usize>,
     statement: Statement,
 }
