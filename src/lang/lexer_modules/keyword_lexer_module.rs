@@ -1,14 +1,18 @@
 use crate::lexer::LexerModuleSuccessResult;
 
 use std::str::FromStr;
-use super::super::{Keyword, LexerModuleResult, Token};
-use super::super::LexerModule;
+use super::super::{Keyword, Token};
+use crate::lexer::LexerModuleResult;
+use crate::lexer::LexerModule;
 
 pub struct KeywordLexerModule();
 
 impl LexerModule for KeywordLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a> {
+    type Language = Token;
+
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, Self::Language>
+    {
         let token = get_first_word(stream); 
         if token.is_none()
         {

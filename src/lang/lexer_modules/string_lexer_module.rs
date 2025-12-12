@@ -1,12 +1,13 @@
 //! Lexer module for parsing strings
 
-use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult};
+use crate::{lang::Token, lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult}};
 
 pub struct StringLexerModule();
 
 impl LexerModule for StringLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a> {
+    type Language = Token;
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, Self::Language> {
         // We only handle this token if it starts with a "
         if !stream.starts_with("\"")
         {
@@ -31,7 +32,7 @@ impl LexerModule for StringLexerModule
             {
                 // We have to add one to get rid of the end quote. Idk why, I'm dumb.
                 remainder: &stream[end_quote_pos+1..],
-                token: crate::lexer::Token::String(string_contents.to_owned()),
+                token: Token::String(string_contents.to_owned()),
             })
     }
 }
@@ -39,7 +40,7 @@ impl LexerModule for StringLexerModule
 #[cfg(test)]
 mod tests
 {
-    use crate::lexer::Token;
+    use crate::lang::Token;
 
     use super::*;
     #[test]

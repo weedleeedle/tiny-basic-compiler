@@ -6,25 +6,25 @@
 //! To get started, construct a [lexer::LexerBuider], which is used to create a [lexer::Lexer]
 
 mod lexer;
-mod token;
-mod lexer_modules;
-mod lexer_program_tests;
 
-pub use token::*;
 pub use lexer::*;
 
 /// Information contained when a token is successfully parsed out of an input stream.
+///
+/// L is the token type that [LexerModule]s should return.
 #[derive(Debug)]
-pub struct LexerModuleSuccessResult<'a>
+pub struct LexerModuleSuccessResult<'a, L>
 {
     /// The remainder of the input stream, with the consumed token's input character(s) subtracted
     /// from the slice.
     pub remainder: &'a str,
     /// The token we produced.
-    pub token: Token
+    pub token: L
 }
 
 /// Type returned by a [LexerModule].
+///
+/// L is the type that the [LexerModule]s should return.
 ///
 /// Handles the three possible cases:
 /// One: The [LexerModule] parses a token out of the start of the input stream successfully.
@@ -36,17 +36,17 @@ pub struct LexerModuleSuccessResult<'a>
 /// quotation mark as expected, but anytime a module encounters an input string in an invalid
 /// format, it should return the [TokenFailed] variant.
 #[derive(Debug)]
-pub enum LexerModuleResult<'a>
+pub enum LexerModuleResult<'a, L>
 {
     /// The input prefix was parsed successfully.
-    TokenSuccess(LexerModuleSuccessResult<'a>),
+    TokenSuccess(LexerModuleSuccessResult<'a, L>),
     /// The input prefix was not recognized.
     TokenIgnored,
     /// The input prefix was recognized, but failed to follow an expected pattern.
     TokenFailed(anyhow::Error)
 }
 
-impl LexerModuleResult<'_>
+impl<L> LexerModuleResult<'_, L>
 {
     pub fn is_success(&self) -> bool
     {
@@ -77,9 +77,9 @@ impl LexerModuleResult<'_>
 
 }
 
-impl<'a> LexerModuleResult<'a>
+impl<'a, L> LexerModuleResult<'a, L>
 {
-    pub fn unwrap(self) -> LexerModuleSuccessResult<'a>
+    pub fn unwrap(self) -> LexerModuleSuccessResult<'a, L>
     {
         match self
         {
@@ -101,7 +101,8 @@ impl<'a> LexerModuleResult<'a>
 
 pub trait LexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a>;
+    type Language;
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, Self::Language>;
 }
 
 

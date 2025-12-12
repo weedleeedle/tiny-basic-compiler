@@ -2,14 +2,13 @@
 use crate::lexer::LexerModuleResult;
 
 use super::LexerModule;
-use super::Token;
 
-pub struct LexerBuilder
+pub struct LexerBuilder<L>
 {
-    lexer_modules: Vec<Box<dyn LexerModule>>
+    lexer_modules: Vec<Box<dyn LexerModule<Language = L>>>
 }
 
-impl LexerBuilder
+impl<L> LexerBuilder<L>
 {
     /// Creates a new [LexerBuilder]
     pub fn new() -> Self
@@ -25,18 +24,17 @@ impl LexerBuilder
     /// we consume the self to avoid a duplication.le
     ///
     /// We also provide the input stream that we're planning on parsing.
-    pub fn build<'a>(self, input_stream: &'a str) -> Lexer<'a>
+    pub fn build(self) -> Lexer<L>
     {
         Lexer 
         { 
-            input_stream,
             lexer_modules: self.lexer_modules,
         }
     }
 
     /// Adds a [LexerModule] to the Lexer. LexerModules handle the input stream and convert
     /// them to a sequence of tokens.
-    pub fn add_module(mut self, module: Box<dyn LexerModule>) -> Self
+    pub fn add_module(mut self, module: Box<dyn LexerModule<Language = L>>) -> Self
     {
         self.lexer_modules.push(module);
         self
@@ -44,44 +42,39 @@ impl LexerBuilder
 
     /// Adds multiple [LexerModule]s to the Lexer. Doesn't erase existing modules, only appends to
     /// the list of modules.
-    pub fn add_modules(mut self, modules: Vec<Box<dyn LexerModule>>) -> Self
+    pub fn add_modules(mut self, modules: Vec<Box<dyn LexerModule<Language = L>>>) -> Self
     {
         self.lexer_modules.extend(modules);
         self
     }
 }
 
-pub struct Lexer<'a>
+pub struct Lexer<L>
 {
-    lexer_modules: Vec<Box<dyn LexerModule>>,
-    input_stream: &'a str,
+    lexer_modules: Vec<Box<dyn LexerModule<Language = L>>>,
 }
 
-impl<'a> IntoIterator for Lexer<'a>
+impl<L> Lexer<L>
 {
-    type Item = Result<Token, anyhow::Error>;
-
-    type IntoIter = TokenIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        TokenIterator
-        {
-            input_stream: self.input_stream,
-            lexer: self
+    pub fn parse_stream<'a>(&'a mut self, input_stream: &'a str) -> TokenIterator<'a, L>
+    {
+        TokenIterator { 
+            lexer: self,
+            input_stream: input_stream
         }
     }
 }
 
-pub struct TokenIterator<'a>
+pub struct TokenIterator<'a, L>
 {
-    lexer: Lexer<'a>,
+    lexer: &'a mut Lexer<L>,
     input_stream: &'a str
 }
 
-impl<'a> TokenIterator<'a>
+impl<'a, L> TokenIterator<'a, L>
 {
     /// Produces the first valid token and updates the input stream accordingly.
-    fn parse_stream(&mut self) -> Option<Result<Token, anyhow::Error>>
+    fn parse_stream(&mut self) -> Option<Result<L, anyhow::Error>>
     {
         loop 
         {
@@ -112,11 +105,10 @@ impl<'a> TokenIterator<'a>
     ///     This failure means an unrecoverable error, so we want to return the error.
     ///
     /// Updates our stored position in the [input_stream].
-    fn try_parse_first_token(&mut self) -> Option<Result<Token, anyhow::Error>>
+    fn try_parse_first_token(&mut self) -> Option<Result<L, anyhow::Error>>
     {
         let mut remainder = self.input_stream;
         let token = self.try_each_lexer(remainder);
-        println!("Token: {:?}", token);
         if token.is_failure()
         {
             // Halt and return the error.
@@ -147,7 +139,7 @@ impl<'a> TokenIterator<'a>
     }
 
     /// Returns the result of the 
-    fn try_each_lexer(&mut self, stream: &'a str) -> super::LexerModuleResult<'a>
+    fn try_each_lexer(&mut self, stream: &'a str) -> super::LexerModuleResult<'a, L>
     {
         for lexer in self.lexer.lexer_modules.iter_mut()
         {
@@ -169,9 +161,9 @@ impl<'a> TokenIterator<'a>
     }
 }
 
-impl<'a> Iterator for TokenIterator<'a> {
+impl<'a, L> Iterator for TokenIterator<'a, L> {
     // Parsing the token stream could fail.
-    type Item = Result<Token, anyhow::Error>;
+    type Item = Result<L, anyhow::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.parse_stream()
@@ -185,16 +177,19 @@ mod tests
 
     use super::*;
 
+    #[derive(Debug, PartialEq, Eq)]
+    struct MockLang();
+
     // Dummy lexer module that just returns each token provided to it and consumes one character of
     // an input string at a time.
-    pub struct TestLexerModule
+    struct TestLexerModule
     {
-        tokens_to_return: std::vec::IntoIter<Token>,
+        tokens_to_return: std::vec::IntoIter<MockLang>,
     }
 
     impl TestLexerModule
     {
-        pub fn new(tokens: Vec<Token>) -> Self
+        fn new(tokens: Vec<MockLang>) -> Self
         {
             Self
             {
@@ -205,7 +200,9 @@ mod tests
 
     impl LexerModule for TestLexerModule
     {
-        fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a> {
+        type Language = MockLang;
+
+        fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, MockLang> {
             let token = self.tokens_to_return.next();
             token.map_or(
             LexerModuleResult::TokenIgnored,
@@ -217,32 +214,32 @@ mod tests
                 })
             })
         }
+
     }
 
     #[test]
     fn test_can_build_lexer()
     {
-        let lexer = LexerBuilder::new().build("Test");
+        let lexer = LexerBuilder::<MockLang>::new().build();
         assert_eq!(lexer.lexer_modules.len(), 0);
-        assert_eq!(lexer.input_stream, "Test");
     }
 
     #[test]
     fn test_lexer_with_test_lexer()
     {
-        let tokens = vec![Token::NewLine];
+        let tokens = vec![MockLang()];
         let test_lexer_module = TestLexerModule::new(tokens);
-        let lexer = LexerBuilder::new()
+        let mut lexer = LexerBuilder::new()
                     .add_module(Box::new(test_lexer_module))
-                    .build("A");
+                    .build();
 
         // Lol I love that we can just turn Vec<Result> into Result<Vec> with .collect().
         // Not sure how I feel about the token stream being an iterator over results but it's the
         // only thing I can think of ig.
-        let ret_tokens: Result<Vec<Token>, anyhow::Error> = lexer.into_iter().collect();
+        let ret_tokens: Result<Vec<MockLang>, anyhow::Error> = lexer.parse_stream("A").collect();
         assert!(ret_tokens.is_ok());
         let ret_tokens = ret_tokens.unwrap();
         assert_eq!(ret_tokens.len(), 1);
-        assert_eq!(ret_tokens[0], Token::NewLine);
+        assert_eq!(ret_tokens[0], MockLang());
     }
 }

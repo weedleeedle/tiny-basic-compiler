@@ -1,13 +1,16 @@
 //! This module parses symbols
 
-use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult, Token, token::Symbol};
+use crate::lang::{Symbol, Token};
+use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult};
 
 pub struct SymbolLexerModule();
 
 impl LexerModule for SymbolLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a> {
+    type Language = Token;
 
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, Self::Language>
+    {
         let first_char = stream.bytes().next();
         if first_char.is_none()
         {
@@ -31,7 +34,8 @@ impl LexerModule for SymbolLexerModule
 #[cfg(test)]
 mod tests
 {
-    use crate::lexer::lexer::LexerBuilder;
+    use crate::lang::Symbol;
+    use crate::lexer::LexerBuilder;
 
     use super::*;
 
@@ -51,11 +55,11 @@ mod tests
         ];
 
         let lexer_module = SymbolLexerModule();
-        let lexer = LexerBuilder::new()
+        let mut lexer = LexerBuilder::new()
                         .add_module(Box::new(lexer_module))
-                        .build(&input_symbols);
+                        .build();
 
-        for (token, expected_token) in lexer.into_iter().zip(expected_token.into_iter())
+        for (token, expected_token) in lexer.parse_stream(input_symbols).zip(expected_token.into_iter())
         {
             assert_eq!(token.unwrap(), expected_token);
         }

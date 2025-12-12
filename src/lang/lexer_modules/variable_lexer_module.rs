@@ -1,16 +1,20 @@
 //! The variable lexer module parses variables, which are a single letter A-Z.
 
-use crate::lexer::{LexerModuleResult, Token};
-use crate::parser::ast::VariableFromU8Error;
-use crate::parser::ast::Variable;
+use crate::lang::ast::Variable;
+use crate::lang::ast::VariableFromU8Error;
+use crate::lexer::LexerModule;
+use crate::lexer::LexerModuleResult;
+use crate::lang::Token;
 
-use super::super::LexerModule;
 
 pub struct VariableLexerModule();
 
 impl LexerModule for VariableLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a> {
+    type Language = Token;
+
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, Self::Language>
+    {
         let first_char = stream.bytes().next();
         if first_char.is_none()
         {

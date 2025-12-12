@@ -1,12 +1,15 @@
 //! Lexer module that parses newlines.
 
-use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult, Token};
+use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult};
+use crate::lang::Token;
 
 pub struct NewlineLexerModule();
 
 impl LexerModule for NewlineLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a>
+    type Language = Token;
+
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> LexerModuleResult<'a, Self::Language>
     {
         if stream.starts_with('\n')
         {

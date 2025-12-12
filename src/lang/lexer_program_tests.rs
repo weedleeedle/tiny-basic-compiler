@@ -1,35 +1,13 @@
 #![cfg(test)]
 //! Tests the lexer on an entire program.
 
-use crate::parser::ast::Variable;
-
-use super::lexer_modules::*;
 use super::*;
-
-fn create_default_lexer(input_stream: &str) -> Lexer<'_>
-{
-    let modules: Vec<Box<dyn LexerModule>> = 
-    vec![
-        Box::new(StringLexerModule()),
-        Box::new(KeywordLexerModule()),
-        Box::new(SymbolLexerModule()),
-        Box::new(NumberLexerModule()),
-        Box::new(VariableLexerModule()),
-        Box::new(NewlineLexerModule()),
-    ];
-
-    let lexer = LexerBuilder::new()
-                    .add_modules(modules)
-                    .build(input_stream);
-
-    lexer
-}
 
 /// Tests if an input stream generates a stream of tokens equivalent to the `expected_output_stream`
 fn test_lexer_on_input(input_stream: &str, expected_output_stream: &[Token]) -> bool
 {
-    let lexer = create_default_lexer(input_stream);
-    let lexer_iter = lexer.into_iter();
+    let mut lexer = create_lexer();
+    let lexer_iter = lexer.parse_stream(input_stream);
     let expected_output_iter = expected_output_stream.iter();
     for (input, output) in lexer_iter.zip(expected_output_iter)
     {

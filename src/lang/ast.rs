@@ -42,7 +42,7 @@ use derive_more::{Constructor, Into};
 use getset::CopyGetters;
 use thiserror::Error;
 
-use crate::lexer::Symbol;
+use super::Symbol;
 
 /// This node represents a line in BASIC.
 #[derive(CopyGetters, Constructor)]
@@ -179,8 +179,8 @@ impl TryFrom<u8> for Variable
     /// # Examples
     ///
     /// ```
-    /// # use tiny_basic_compiler::parser::ast::Variable;
-    /// # use tiny_basic_compiler::parser::ast::VariableFromU8Error;
+    /// # use tiny_basic_compiler::lang::ast::Variable;
+    /// # use tiny_basic_compiler::lang::ast::VariableFromU8Error;
     /// let variable: Result<Variable, VariableFromU8Error> = b'A'.try_into();
     /// assert!(variable.is_ok());
     /// let variable = variable.unwrap();

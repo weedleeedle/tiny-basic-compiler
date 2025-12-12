@@ -5,30 +5,35 @@
 
 use id::IdGenerator;
 use id::Id;
-use crate::lexer::Token;
 
 pub mod id;
 
-type TokenRecognizer<'a> = &'a dyn FnOnce(&Token) -> bool;
+/// The generic parameter `L` is the type of the langauge we are parser.
+/// This is probably going to be something like `L::is_keyword()` for
+type TokenRecognizer<'a, L> = &'a dyn FnOnce(&L) -> bool;
 
 /// Symbols can be either terminating or non-terminating symbols.
-enum Symbol<'a>
+///
+/// The generic parameter `L` is the type of the langauge we are parsing.
+enum Symbol<'a, L>
 {
-    // Okay I'm still brain dead about this but what I want to do is check the type of the symbol
-    // So this could be something like passing in the Token::is_keyword() or w/e.
-    Terminating(TokenRecognizer<'a>),
+    Terminating(TokenRecognizer<'a, L>),
     Nonterminating(Id)
 }
 
-pub struct Rule<'a>
+/// A rule represents a formal grammar expression of some non-terminating symbol to one or more
+/// terminating and non-terminating symbols.
+///
+/// L is the type of the language  we are parsing.
+pub struct Rule<'a, L>
 {
     // Left-hand input symbol
     input_symbol: Id,
     // Right-hand symbols to replace it with.
-    replacement_symbols: Vec<Symbol<'a>>
+    replacement_symbols: Vec<Symbol<'a, L>>
 }
 
-impl<'a> Rule<'a>
+impl<'a, L> Rule<'a, L>
 {
     pub fn new(input_symbol: Id) -> Self
     {
@@ -45,21 +50,21 @@ impl<'a> Rule<'a>
         self
     }
 
-    pub fn add_terminating_symbol(mut self, terminating_symbol_recognizer: TokenRecognizer<'a>) -> Self
+    pub fn add_terminating_symbol(mut self, terminating_symbol_recognizer: TokenRecognizer<'a, L>) -> Self
     {
         self.replacement_symbols.push(Symbol::Terminating(terminating_symbol_recognizer));
         self
     }
 }
 
-pub struct GrammarBuilder<'a>
+pub struct GrammarBuilder<'a, L>
 {
     id_generator: IdGenerator,
-    starting_rule: Option<Rule<'a>>,
-    rules: Vec<Rule<'a>>
+    starting_rule: Option<Rule<'a, L>>,
+    rules: Vec<Rule<'a, L>>
 }
 
-impl<'a> GrammarBuilder<'a>
+impl<'a, L> GrammarBuilder<'a, L>
 {
     pub fn new() -> Self
     {
@@ -87,7 +92,7 @@ impl<'a> GrammarBuilder<'a>
     ///
     /// ```
     /// ```
-    pub fn add_rule(mut self, rule: Rule<'a>) -> Self
+    pub fn add_rule(mut self, rule: Rule<'a, L>) -> Self
     {
         if self.starting_rule.is_none()
         {
@@ -107,7 +112,7 @@ impl<'a> GrammarBuilder<'a>
     ///
     /// ```
     /// ```
-    pub fn build(self) -> Option<Grammar<'a>>
+    pub fn build(self) -> Option<Grammar<'a, L>>
     {
         Some(Grammar
         {
@@ -118,23 +123,35 @@ impl<'a> GrammarBuilder<'a>
     }
 }
 
-pub struct Grammar<'a>
+/// A completed set of rules defining a certain formal grammar.
+///
+/// L is the type of the language we are parsing.
+pub struct Grammar<'a, L>
 {
     id_generator: IdGenerator,
-    default_rule: Rule<'a>,
-    rules: Vec<Rule<'a>>
+    default_rule: Rule<'a, L>,
+    rules: Vec<Rule<'a, L>>
 }
-
 
 #[cfg(test)]
 mod tests
 {
+    struct MockLang();
+    
+    impl MockLang
+    {
+        pub fn test_func(&self) -> bool
+        {
+            true
+        }
+    }
+
     use super::*;
 
     #[test]
     fn test_create_symbol()
     {
-        let mut grammar = GrammarBuilder::new();
+        let mut grammar = GrammarBuilder::<MockLang>::new();
         let s = grammar.id();
         let t = grammar.id();
         assert_ne!(s, t);
@@ -143,12 +160,12 @@ mod tests
     #[test]
     fn test_create_rule()
     {
-        let mut grammar = GrammarBuilder::new();
+        let mut grammar = GrammarBuilder::<MockLang>::new();
         let s = grammar.id();
 
         let rule = Rule::new(s)
             .add_nonterminating_symbol(s)
-            .add_terminating_symbol(&Token::is_keyword);
+            .add_terminating_symbol(&MockLang::test_func);
 
         grammar.add_rule(rule);
     }

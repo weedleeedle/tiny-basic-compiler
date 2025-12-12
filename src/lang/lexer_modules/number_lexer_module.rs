@@ -2,13 +2,18 @@
 //!
 //! It doesn't take into account sign or commas or anything.
 
-use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult, Token};
+use crate::lexer::LexerModuleSuccessResult;
+use crate::lexer::LexerModuleResult;
+use crate::lexer::LexerModule;
+use crate::lang::Token;
 
 pub struct NumberLexerModule();
 
 impl LexerModule for NumberLexerModule
 {
-    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a> {
+    type Language = Token;
+    fn parse_stream<'a>(&mut self, stream: &'a str) -> crate::lexer::LexerModuleResult<'a, Self::Language>
+    {
         let number_str = get_all_digits_at_start(stream);
         if number_str.is_empty()
         {
