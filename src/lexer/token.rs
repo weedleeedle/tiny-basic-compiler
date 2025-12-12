@@ -2,7 +2,6 @@
 
 use std::str::FromStr;
 
-use derive_more::Into;
 use thiserror::Error;
 
 use crate::parser::ast::Variable;
@@ -19,6 +18,17 @@ pub enum Token
     NewLine,
 }
 
+impl Token
+{
+    pub fn is_keyword(&self) -> bool
+    {
+        match self
+        {
+            Self::Keyword(_) => true,
+            _ => false,
+        }
+    }
+}
 /// Language keywords, as defined [here](https://en.wikipedia.org/wiki/Tiny_BASIC#Formal_grammar)
 #[derive(Debug, PartialEq, Eq)]
 pub enum Keyword

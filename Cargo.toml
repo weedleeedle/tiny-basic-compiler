@@ -8,3 +8,9 @@ anyhow = "1.0.100"
 derive_more = { version = "2.0.1", features = ["full"] }
 getset = "0.1.6"
 thiserror = "2.0.17"
+
+[[bin]]
+name = "reference-sanity-check"
+
+[[bin]]
+name = "id-experiment"

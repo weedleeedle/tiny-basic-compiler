@@ -1,36 +1,46 @@
 //! This module defines the actual parser implementation that produces an AST from a stream of
 //! tokens.
 
-use std::{collections::HashMap, slice::Iter};
+use std::{collections::HashMap, rc::Rc};
 
 use anyhow::Result;
-use derive_more::derive;
 
 use crate::{lexer::{Keyword, Token}, parser::ast::{Line, Statement}};
 
 /// Represents a sequence of statements and associated metadata (line numbers)
-#[derive(New)]
 pub struct Program
 {
     /// The list of instructions in order.
-    instructions: Vec<Line>,
+    instructions: Vec<Rc<Line>>,
     /// "Saved" or "bookmarked" lines with a reference to their stored location in [instructions]. 
-    numbered_lines: HashMap<int, &Line>,
+    numbered_lines: HashMap<usize, Rc<Line>>,
 }
 
 impl Program
 {
+    pub fn new() -> Self
+    {
+        Self
+        {
+            instructions: Vec::new(),
+            numbered_lines: HashMap::new(),
+        }
+    }
+
     pub fn add_line(&mut self, line: Line) -> Result<()>
     {
         let num = line.line_number();
-        self.instructions.push(line);
+        // We use Rc so we can share a reference to the line between both instructions and
+        // numbered_lines. You can't have a reference to a sibling member in normal Rust.
+        let rc = Rc::new(line);
+        self.instructions.push(rc.clone());
         // If we have a line number, we add it to our saved lines.
         if let Some(num) = num
         {
-            let line_ref = self.instructions.last().unwrap();
             // TODO: do we want to fail here?
-            self.numbered_lines.insert(num, line_ref);
+            self.numbered_lines.insert(num, rc);
         }
+        Ok(())
     }
 }
 
@@ -38,36 +48,42 @@ pub struct Parser();
 
 impl Parser
 {
-    pub fn parse(token_stream: impl IntoIterator<Item = Token>) -> Result<Program>
+    pub fn parse<T: IntoIterator<Item = Token>>(token_stream: T) -> Result<Program>
     {
         let mut program = Program::new();
         let mut token_stream = token_stream.into_iter();
+        let mut token_stream_peek = token_stream.peekable();
         loop
         {
-            let token = token_stream.next();
-            if token.is_none()
+            let next_token = token_stream_peek.peek();
+            if next_token.is_none()
             {
                 // We're done!
                 break;
             }
 
-            let line = match token
+            let line = match next_token.unwrap()
             {
                 // If we have a number, 
                 Token::Number(num) => 
                 {
-                    Line::new(Some(num), parse_statement(&token_stream)?)
+                    // Advance the underlying iterator bc we've handled the peeked token which is a
+                    // number.
+                    _ = token_stream_peek.next();
+                    Line::new(Some(*num), Self::parse_statement(&mut token_stream)?)
                 }
-                _ => Line::new(None, Self::parse_statement(token.iter().chain(&token_stream))?)
-            }
+                token => Line::new(None, Self::parse_statement(&mut token_stream)?)
+            };
 
             program.add_line(line);
         }
+
+        Ok(program)
     }
 
-    fn parse_statement(token_stream: &mut Iterator<Item = Token>) -> Result<Statement>
+    fn parse_statement<T: IntoIterator<Item = Token>>(token_stream: &mut T) -> Result<Statement>
     {
-        let token = token_stream.next();
+        let token = token_stream.into_iter().next();
         if token.is_none()
         {
             anyhow!("No token found!")?;
