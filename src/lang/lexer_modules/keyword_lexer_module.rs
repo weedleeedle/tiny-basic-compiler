@@ -1,7 +1,8 @@
+use crate::lang::token::Keyword;
+use crate::lang::token::Token;
 use crate::lexer::LexerModuleSuccessResult;
 
 use std::str::FromStr;
-use super::super::{Keyword, Token};
 use crate::lexer::LexerModuleResult;
 use crate::lexer::LexerModule;
 

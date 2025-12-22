@@ -1,6 +1,7 @@
 //! This module parses symbols
 
-use crate::lang::{Symbol, Token};
+use crate::lang::Token;
+use crate::lang::token::Symbol;
 use crate::lexer::{LexerModule, LexerModuleResult, LexerModuleSuccessResult};
 
 pub struct SymbolLexerModule();
@@ -34,7 +35,7 @@ impl LexerModule for SymbolLexerModule
 #[cfg(test)]
 mod tests
 {
-    use crate::lang::Symbol;
+    use crate::lang::token::Symbol;
     use crate::lexer::LexerBuilder;
 
     use super::*;

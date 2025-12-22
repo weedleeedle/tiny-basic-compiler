@@ -38,11 +38,52 @@
 //! string ::= " ( |!|#|$ ... -|.|/|digit|: ... @|A|B|C ... |X|Y|Z)* "
 //!```
 
+use std::{collections::HashMap, rc::Rc};
+
 use derive_more::{Constructor, Into};
 use getset::CopyGetters;
 use thiserror::Error;
+use anyhow::Result;
 
-use super::Symbol;
+use crate::lang::token::Symbol;
+
+/// Represents a sequence of statements and associated metadata (line numbers)
+pub struct Program
+{
+    /// The list of instructions in order.
+    instructions: Vec<Rc<Line>>,
+    /// "Saved" or "bookmarked" lines with a reference to their stored location in [instructions]. 
+    numbered_lines: HashMap<usize, Rc<Line>>,
+}
+
+impl Program
+{
+    pub fn new() -> Self
+    {
+        Self
+        {
+            instructions: Vec::new(),
+            numbered_lines: HashMap::new(),
+        }
+    }
+
+    pub fn add_line(&mut self, line: Line) -> Result<()>
+    {
+        let num = line.line_number();
+        // We use Rc so we can share a reference to the line between both instructions and
+        // numbered_lines. You can't have a reference to a sibling member in normal Rust.
+        let rc = Rc::new(line);
+        self.instructions.push(rc.clone());
+        // If we have a line number, we add it to our saved lines.
+        if let Some(num) = num
+        {
+            // TODO: do we want to fail here?
+            self.numbered_lines.insert(num, rc);
+        }
+        Ok(())
+    }
+}
+
 
 /// This node represents a line in BASIC.
 #[derive(CopyGetters, Constructor)]
@@ -80,7 +121,6 @@ pub struct ExprList
     expression: ExprListItem,
     cons: Vec<ExprListItem>,
 }
-
 
 pub enum ExprListItem
 {

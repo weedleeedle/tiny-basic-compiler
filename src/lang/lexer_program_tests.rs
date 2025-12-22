@@ -1,6 +1,8 @@
 #![cfg(test)]
 //! Tests the lexer on an entire program.
 
+use crate::lang::{ast::Variable, token::{Keyword, Symbol}};
+
 use super::*;
 
 /// Tests if an input stream generates a stream of tokens equivalent to the `expected_output_stream`
