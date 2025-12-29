@@ -4,9 +4,12 @@
 //! One or more terminal and non-terminating symbols.
 //!
 
-use id::Id;
+pub use id::Id;
+pub use id::IdGenerator;
 
-pub mod id;
+use crate::grammar::GrammarTree;
+
+mod id;
 
 /// The generic parameter `L` is the type of the langauge we are parser.
 /// This is probably going to be something like `L::is_keyword()` for
@@ -23,15 +26,6 @@ pub enum SymbolSchema<'a, L>
 {
     Terminating(TokenRecognizer<'a, L>),
     Nonterminating(Id)
-}
-
-
-/// An actual instance of a symbol. We can tell if a sequence of [SymbolInstance]s matches a [Rule]
-/// by checking it. Basically.
-pub enum SymbolInstance<'a, L>
-{
-    Terminating(&'a L),
-    Nonterminating(Id),
 }
 
 /// A rule represents a formal grammar expression of some non-terminating symbol to one or more
@@ -69,7 +63,7 @@ impl<'a, L> Rule<'a, L>
         self
     }
 
-    pub fn matches(&self, rhs: &[SymbolInstance<L>]) -> bool
+    pub fn matches(&self, rhs: &[GrammarTree<L>]) -> bool
     {
         if self.replacement_symbols.len() != rhs.len()
         {
@@ -81,10 +75,10 @@ impl<'a, L> Rule<'a, L>
             // Check to see if the symbols match.
             let symbol_match = match (symbol_schema, symbol_instance)
             {
-                (SymbolSchema::Terminating(func), SymbolInstance::Terminating(token)) => func(token),
-                (SymbolSchema::Terminating(_), SymbolInstance::Nonterminating(_)) => false,
-                (SymbolSchema::Nonterminating(_), SymbolInstance::Terminating(_)) => false,
-                (SymbolSchema::Nonterminating(id), SymbolInstance::Nonterminating(id_2)) => id == id_2,
+                (SymbolSchema::Terminating(func), GrammarTree::Leaf(token)) => func(token),
+                (SymbolSchema::Terminating(_), GrammarTree::Node(_)) => false,
+                (SymbolSchema::Nonterminating(_), GrammarTree::Leaf(_)) => false,
+                (SymbolSchema::Nonterminating(id), GrammarTree::Node(data)) => *id == data.symbol,
             };
 
             // If they don't, abort. Otherwise continue.
@@ -116,7 +110,7 @@ mod tests
         }
     }
 
-    use crate::parser::GrammarBuilder;
+    use crate::grammar::{GrammarBuilder, GrammarNodeData};
 
     use super::*;
 
@@ -153,12 +147,12 @@ mod tests
             .add_terminating_symbol(&MockLang::test_func);
 
         let input_symbols_wrong = vec![
-            SymbolInstance::<MockLang>::Terminating(&MockLang())
+            GrammarTree::<MockLang>::Leaf(MockLang())
         ];
 
         let input_symbols_right = vec![
-            SymbolInstance::<MockLang>::Terminating(&MockLang()),
-            SymbolInstance::<MockLang>::Terminating(&MockLang()),
+            GrammarTree::<MockLang>::Leaf(MockLang()),
+            GrammarTree::<MockLang>::Leaf(MockLang()),
         ];
 
         assert!(!rule.matches(&input_symbols_wrong));
@@ -177,11 +171,12 @@ mod tests
             .add_nonterminating_symbol(t);
 
         let input_symbols = vec![
-            SymbolInstance::<MockLang>::Terminating(&MockLang()),
-            SymbolInstance::<MockLang>::Nonterminating(t)
+            GrammarTree::<MockLang>::Leaf(MockLang()),
+            GrammarTree::<MockLang>::Node(GrammarNodeData
+                { symbol: t, children: Vec::new() }
+            )
         ];
 
         assert!(rule.matches(&input_symbols));
     }
-
 }

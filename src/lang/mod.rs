@@ -7,9 +7,10 @@ pub mod token;
 
 mod lexer_program_tests;
 
-use crate::{lang::{ast::Program, token::Token}, lexer::{Lexer, LexerBuilder}, parser::{Grammar, ParseEngine}};
-
 use lexer_modules::*;
+
+use crate::lexer::{Lexer, LexerBuilder};
+use crate::lang::token::Token;
 
 /// Creates a lexer to parse the tiny basic language.
 pub fn create_lexer() -> Lexer<Token>

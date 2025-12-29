@@ -1,5 +1,5 @@
 pub mod lexer;
-pub mod parser;
+pub mod grammar;
 pub mod lang;
 
 
