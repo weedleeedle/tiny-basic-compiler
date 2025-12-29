@@ -1,3 +1,4 @@
+//! Defines the input stream language that gets parsed into an AST.
 use std::str::FromStr;
 use thiserror::Error;
 use crate::lang::ast::Variable;
@@ -108,7 +109,7 @@ impl FromStr for Keyword
 
 /// All of the accepted symbols by the language?
 /// We don't want to interpret here, just parse.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Symbol
 {
     LessThanSign,

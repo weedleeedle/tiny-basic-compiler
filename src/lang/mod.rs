@@ -2,6 +2,7 @@
 //! BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) language.
 
 pub mod ast;
+pub mod ast_parser;
 pub mod lexer_modules;
 pub mod token;
 

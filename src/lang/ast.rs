@@ -43,9 +43,9 @@ use std::{collections::HashMap, rc::Rc};
 use derive_more::{Constructor, Into};
 use getset::CopyGetters;
 use thiserror::Error;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
-use crate::lang::token::Symbol;
+use crate::lang::token::{Symbol, Token};
 
 /// Represents a sequence of statements and associated metadata (line numbers)
 pub struct Program
@@ -83,7 +83,6 @@ impl Program
         Ok(())
     }
 }
-
 
 /// This node represents a line in BASIC.
 #[derive(CopyGetters, Constructor)]
@@ -248,9 +247,28 @@ pub enum RelOpSymbol
     GreaterThanOrEqual,
 }
 
+impl TryFrom<&[Token]> for RelOpSymbol
+{
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[Token]) -> std::result::Result<Self, Self::Error> {
+        // Assert all tokens are Symbols    
+        let tokens: Result<Vec<Symbol>, anyhow::Error> = value.iter().map(|x|
+            match x
+            {
+                Token::Symbol(s) => Ok(*s),
+                x => Err(anyhow!(format!("Expected a list of symbols, received one that wasn't a symbol! {:?}", x))),
+            }).collect();
+
+        let tokens = tokens?;
+
+        RelOpSymbol::try_from(tokens.as_slice())
+    }
+}
+
 impl TryFrom<&[Symbol]> for RelOpSymbol
 {
-    type Error = ();
+    type Error = anyhow::Error;
 
     /// We attempt to create a [RelOpSymbol] from a list of [Symbol]s.
     /// This only works if the [Symbol]s are of the expected types, obviously. Otherwise it just
@@ -263,7 +281,7 @@ impl TryFrom<&[Symbol]> for RelOpSymbol
             [Symbol::EqualsSign] => Ok(Self::Equal),
             [Symbol::GreaterThanSign] => Ok(Self::GreaterThan),
             [Symbol::GreaterThanSign, Symbol::EqualsSign] => Ok(Self::GreaterThanOrEqual),
-            _ => Err(())
+            _ => Err(anyhow!("Expected &[Symbol] to match one of >, >=, =, <, <=")),
         }
     }
 }
